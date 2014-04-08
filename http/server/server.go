@@ -2,14 +2,15 @@ package main
 
 import (
 	"flag"
+	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/partkyle/gossl"
-	"github.com/sendgrid/go-sglog"
 )
 
-var logger = sglog.NewLevelLogger("httpssl", sglog.INFO)
+var logger = log.New(os.Stdout, "[http ssl server] ", log.LstdFlags)
 
 var (
 	addr = flag.String("addr", "localhost:8443", "host and port to listen on")
@@ -22,10 +23,10 @@ func main() {
 
 	listener, err := net.Listen("tcp", *addr)
 	if err != nil {
-		logger.Fatal("error listening", sglog.Values{"err": err})
+		logger.Fatalf("error listening: %s", err)
 	}
 
-	logger.Info("starting listener", sglog.Values{"addr": listener.Addr()})
+	logger.Printf("starting listener addr=%q", listener.Addr())
 
 	context := gossl.NewContext(gossl.SSLv23ServerMethod())
 	context.UseCertificateFile(*cert, gossl.FILETYPE_PEM)
@@ -34,7 +35,7 @@ func main() {
 
 	sslListener, err := gossl.NewListener(listener, context)
 	if err != nil {
-		logger.Fatal("error starting ssl listener", sglog.Values{"err": err})
+		logger.Fatalf("error starting ssl listener: ", err)
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +43,6 @@ func main() {
 	})
 
 	if err := http.Serve(sslListener, nil); err != nil {
-		logger.Fatal("error serving http", sglog.Values{"err": err})
+		logger.Fatal("error serving http: %s", err)
 	}
 }
